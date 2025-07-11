@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 
-
 class ImageStitching:
     """containts the utilities required to stitch images"""
 
@@ -26,8 +25,6 @@ class ImageStitching:
         photo_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
         return image, photo_gray
-
-
 
     @staticmethod
     def _sift_detector(image):

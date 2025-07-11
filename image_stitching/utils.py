@@ -1,8 +1,6 @@
-import cv2
+import cv2, sys
 from .image_stitching import ImageStitching
-import sys
 import numpy as np
-
 
 def forward(query_photo, train_photo):
     """Runs a forward pass using the ImageStitching() class in utils.py.
