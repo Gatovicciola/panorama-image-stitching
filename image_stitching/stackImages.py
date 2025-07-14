@@ -5,18 +5,6 @@ sys.path.insert(0,  r'./machine_vision/external/panorama-image-stitching')
 from image_stitching.read_images import read as read_images
 from image_stitching.recursion import recurse
 
-def fuse_line(line_stack):
-    images_list = read_images(line_stack)
-    fusion, _ = recurse(images_list)
-    return fusion
-
-def fuse_column(column_stack):
-    images_list = read_images(column_stack)
-    images_list = [rotate_image(im, angle_degree=90) for im in images_list]
-    fusion, _ = recurse(images_list)
-    rotated_fusion = rotate_image(fusion, angle_degree=-90)
-    return rotated_fusion
-
 def rotate_image(img, angle_degree=90, scale = 1.0):
     # Get the image dimensions
     h, w = img.shape[:2]
@@ -43,59 +31,79 @@ def rotate_image(img, angle_degree=90, scale = 1.0):
 
     return rotated_image
 
-def stackImages(array = np.ndarray[str]):
-    lines, cols = array.shape
+def fuse_line(line_stack):
+    images_list = read_images(line_stack)
+    return recurse(images_list)
+
+def fuse_column(column_stack):
+    images_list = read_images(column_stack)
+    images_list = [rotate_image(im, angle_degree=90) for im in images_list]
+    fusion, _ = recurse(images_list)
+    rotated_fusion = rotate_image(fusion, angle_degree=-90)
+    return rotated_fusion, rotate_image(_, angle_degree=-90)
+
+def stackImages(arr = np.ndarray[str], output_directory:str = ".", name_="panorama.png", show_cache=False):
+    lines, cols = arr.shape
 
     # verify empty cell
-
+    if np.any(arr == ""):
+        raise ValueError("[invalid input]: Empty str detected")
+    if arr.ndim != 2:
+        raise ValueError("[arr]: should have 2 dimension")
 
     # for each line classic merge columns
     temp_dir = os.path.join("temps")
     os.makedirs(temp_dir, exist_ok=True)
 
-    try:
-        line_stack, raw = [], []
-        for line in range(lines):
-            image_dir_list = array[line,:]
-            images_list = read_images(image_dir_list)
-            result, _ = recurse(images_list)
+    if lines == 1:
+        fusion, _ = fuse_line(arr[0,:])
 
+    elif cols == 1:
+        # raise Exception("not supported")
+        fusion, _ = fuse_column(arr[:,0])
+
+    else:
+        line_stack = []
+        for line in range(lines):
+            image_dir_list = arr[line,:]
+            result, _ = fuse_line(image_dir_list)
 
             filename = f"partial_line{line}.png"
             cv2.imwrite(os.path.join("temps","_.png"), _)
             cv2.imwrite(os.path.join("temps",filename), result)
-            raw.append(os.path.join("temps",filename))
 
-            rotated_img_ = rotate_image(result, angle_degree=90)
-            imgname = f"rotated_{filename}"
-            cv2.imwrite(os.path.join("temps",imgname), rotated_img_)
-            line_stack.append(os.path.join("temps",imgname))
+            line_stack.append(os.path.join("temps",filename))
 
         # for merging line -> rotate inputs and rotate output
-        images_list = read_images(line_stack[:])
-        fusion, _ = recurse(images_list)
-        cv2.imwrite(os.path.join("temps","que_temp.png"), _)
-        cv2.imwrite(os.path.join("temps","map_temp.png"), fusion)
+        fusion, _ = fuse_column(line_stack)
 
-        l = cv2.imread(os.path.join("temps","map_temp.png"))
-        rotated_fusion = rotate_image(l, angle_degree=-90)
-        cv2.imwrite(os.path.join(".","map.png"), rotated_fusion)
+    cv2.imwrite(os.path.join("temps","map.png"), _)
+    cv2.imwrite(os.path.join(output_directory,name_), fusion)
 
+    # Cleanup: remove temp folder and its contents
 
-    finally:
-        print("")
-        # Cleanup: remove temp folder and its contents
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
+    if os.path.exists(temp_dir) and not show_cache:
+        shutil.rmtree(temp_dir)
 
 import glob
 if __name__ == "__main__":
 
-    nada = ""
     filepaths = glob.glob("machine_vision/db/all_chip//*.png")
-    stack = np.array([[filepaths[2],filepaths[1]], [filepaths[3],filepaths[4]]])
-    stack = np.array([[filepaths[6],filepaths[7]], [filepaths[3],filepaths[4]]])
-    stack = np.array([[filepaths[6],filepaths[7]], [filepaths[5],filepaths[4]]])
-    stack = np.array([[filepaths[2],filepaths[1]], [filepaths[5],filepaths[4]]])
 
-    stackImages(stack)
+    #doesn't work
+    # stack = np.array([[filepaths[6],filepaths[7]], [filepaths[3],filepaths[4]]])
+
+    # works but with distorsions
+    # stack = np.array([[filepaths[6],filepaths[7]], [filepaths[5],filepaths[4]]])
+    
+    # # <3
+    stack = np.array([[filepaths[2],filepaths[1]], [filepaths[3],filepaths[4]]])
+    # stack = np.array([[filepaths[2],filepaths[1]], [filepaths[5],filepaths[4]]])
+
+    # # test case
+    # stack = np.array([[filepaths[2],filepaths[1]], [filepaths[5],""]])
+    # stack = np.array([[filepaths[2],filepaths[1]]])
+    stack = np.array([[filepaths[2]], [filepaths[3]]])
+
+    # stackImages(stack, show_cache = True)
+    stackImages(stack, output_directory="machine_vision/db")
