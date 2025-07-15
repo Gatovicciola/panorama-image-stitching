@@ -42,68 +42,58 @@ def fuse_column(column_stack):
     rotated_fusion = rotate_image(fusion, angle_degree=-90)
     return rotated_fusion, rotate_image(_, angle_degree=-90)
 
-def stackImages(arr = np.ndarray[str], output_directory:str = ".", name_="panorama.png", show_cache=False):
+def fuse(arr = np.ndarray[str], output_directory:str = ".", name_="panorama.png", show_cache=False):
     lines, cols = arr.shape
 
-    # verify empty cell
-    if np.any(arr == ""):
-        raise ValueError("[invalid input]: Empty str detected")
+    # ----------------------------------------------------------------------
+    # Check the dimension of the array
     if arr.ndim != 2:
-        raise ValueError("[arr]: should have 2 dimension")
+        raise ValueError("[invalid input]: array should have 2 dimensions")
+    
+    # Check if all elements are strings
+    if arr.dtype == str:
+        raise ValueError("[invalid input]: content of array should be str")
+    
+    # verify empty cell and array dimensions
+    if np.any(arr == ""):
+        raise ValueError("[invalid input]: empty str detected")
 
+    # Check if all elements are unique
+    all_unique = len(np.unique(arr)) == arr.size
+    if all_unique is not True:
+        raise ValueError("[invalid input]: 2 paths are the same")
+    
+    # ----------------------------------------------------------------------
     # for each line classic merge columns
     temp_dir = os.path.join("temps")
     os.makedirs(temp_dir, exist_ok=True)
 
-    if lines == 1:
-        fusion, _ = fuse_line(arr[0,:])
+    try:
+        if lines == 1:
+            fusion, _ = fuse_line(arr[0,:])
 
-    elif cols == 1:
-        # raise Exception("not supported")
-        fusion, _ = fuse_column(arr[:,0])
+        elif cols == 1:
+            fusion, _ = fuse_column(arr[:,0])
 
-    else:
-        line_stack = []
-        for line in range(lines):
-            image_dir_list = arr[line,:]
-            result, _ = fuse_line(image_dir_list)
+        else:
+            line_stack = []
+            for line in range(lines):
+                image_dir_list = arr[line,:]
+                result, _ = fuse_line(image_dir_list)
 
-            filename = f"partial_line{line}.png"
-            cv2.imwrite(os.path.join("temps","_.png"), _)
-            cv2.imwrite(os.path.join("temps",filename), result)
+                filename = f"partial_line{line}.png"
+                cv2.imwrite(os.path.join("temps","_.png"), _)
+                cv2.imwrite(os.path.join("temps",filename), result)
 
-            line_stack.append(os.path.join("temps",filename))
+                line_stack.append(os.path.join("temps",filename))
 
-        # for merging line -> rotate inputs and rotate output
-        fusion, _ = fuse_column(line_stack)
+            # for merging line -> rotate inputs and rotate output
+            fusion, _ = fuse_column(line_stack)
 
-    cv2.imwrite(os.path.join("temps","map.png"), _)
-    cv2.imwrite(os.path.join(output_directory,name_), fusion)
+        cv2.imwrite(os.path.join("temps","map.png"), _)
+        cv2.imwrite(os.path.join(output_directory,name_), fusion)
 
-    # Cleanup: remove temp folder and its contents
-
-    if os.path.exists(temp_dir) and not show_cache:
-        shutil.rmtree(temp_dir)
-
-import glob
-if __name__ == "__main__":
-
-    filepaths = glob.glob("machine_vision/db/all_chip//*.png")
-
-    #doesn't work
-    # stack = np.array([[filepaths[6],filepaths[7]], [filepaths[3],filepaths[4]]])
-
-    # works but with distorsions
-    # stack = np.array([[filepaths[6],filepaths[7]], [filepaths[5],filepaths[4]]])
-    
-    # # <3
-    stack = np.array([[filepaths[2],filepaths[1]], [filepaths[3],filepaths[4]]])
-    # stack = np.array([[filepaths[2],filepaths[1]], [filepaths[5],filepaths[4]]])
-
-    # # test case
-    # stack = np.array([[filepaths[2],filepaths[1]], [filepaths[5],""]])
-    # stack = np.array([[filepaths[2],filepaths[1]]])
-    stack = np.array([[filepaths[2]], [filepaths[3]]])
-
-    # stackImages(stack, show_cache = True)
-    stackImages(stack, output_directory="machine_vision/db")
+    finally:
+        # Cleanup: remove temp folder and its contents
+        if os.path.exists(temp_dir) and not show_cache:
+            shutil.rmtree(temp_dir)
