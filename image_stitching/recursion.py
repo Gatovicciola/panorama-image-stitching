@@ -2,8 +2,7 @@ import image_stitching.utils as utils
 import numpy as np
 import cv2
 
-
-def recurse(image_list):
+def recurse(image_list:list, no_of_images:int):
     """Recursive function to get panorama of multiple images
 
     Args:
@@ -13,8 +12,6 @@ def recurse(image_list):
     Returns:
         result (numpy array): RGB panoramic image
     """
-    no_of_images = len(image_list)
-
     if no_of_images == 2:
         result, mapped_image = utils.forward(
             query_photo=image_list[no_of_images - 2],

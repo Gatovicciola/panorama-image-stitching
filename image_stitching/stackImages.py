@@ -32,13 +32,13 @@ def rotate_image(img, angle_degree=90, scale = 1.0):
     return rotated_image
 
 def fuse_line(line_stack):
-    images_list = read_images(line_stack)
-    return recurse(images_list)
+    images_list, n_im = read_images(line_stack)
+    return recurse(images_list, n_im)
 
 def fuse_column(column_stack):
-    images_list = read_images(column_stack)
+    images_list, n_im = read_images(column_stack)
     images_list = [rotate_image(im, angle_degree=90) for im in images_list]
-    fusion, _ = recurse(images_list)
+    fusion, _ = recurse(images_list, n_im)
     rotated_fusion = rotate_image(fusion, angle_degree=-90)
     return rotated_fusion, rotate_image(_, angle_degree=-90)
 

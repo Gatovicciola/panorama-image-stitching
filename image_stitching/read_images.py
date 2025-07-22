@@ -19,4 +19,4 @@ def read(image_dir_list):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         images_list.append(image)
 
-    return images_list
+    return images_list, len(images_list)
